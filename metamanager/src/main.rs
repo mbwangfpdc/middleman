@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use env_logger::{Builder, Target};
 use futures::future::{join_all, FutureExt};
 use log::{debug, error, info, trace, LevelFilter};
@@ -53,8 +53,8 @@ async fn echo_tagged_stdout_to_channel(
         let prefix = spliterator.next().unwrap();
         let recipient = prefix.parse::<usize>().unwrap();
         // TODO(mbwang): unnecessary allocation here with to_string but w/e
-        // Process list is 1-indexed since the manager is process 0
         trace!("Read tagged {line}, untagging and forwarding to {recipient}");
+        // Process list is 1-indexed since the manager is process 0
         senders[recipient - 1]
             .send(spliterator.next().unwrap().to_string())
             .await?;
@@ -79,7 +79,6 @@ async fn echo_channel_to_stdin(
     }
     receiver.close();
     info!("Done echoing to stdin");
-    // TODO(mbwang): The manager is hanging here for some reason
     Ok(())
 }
 
@@ -87,11 +86,12 @@ async fn echo_channel_to_stdin(
 // TODO(mbwang): is line reader ok? what if someone tries to crash metamanager with huge invalid messages?
 async fn run(mut processes: Vec<Child>) -> Result<()> {
     // TODO(mbwang): parametrize this delim?
-    let delim = ':';
+    const DELIM: char = ':';
+    // TODO(mbwang): arbitrary channel size, 32 is probably big enough
+    const CHAN_SIZE: usize = 32;
     let mut tasks = Vec::new();
     {
-        // TODO(mbwang): arbitrary channel size, 32 is probably big enough
-        let (p2m_sender, p2m_receiver) = channel::<String>(32);
+        let (p2m_sender, p2m_receiver) = channel::<String>(CHAN_SIZE);
         let mut piterator = processes.iter_mut();
         let manager = piterator.next().unwrap();
         tasks.push(
@@ -101,7 +101,7 @@ async fn run(mut processes: Vec<Child>) -> Result<()> {
         let mut m2p_senders = Vec::new();
         for (idx, process) in piterator.enumerate() {
             trace!("Process {} tasks has pid {}", idx, process.id().unwrap());
-            let (m2p_sender, m2p_receiver) = channel::<String>(32);
+            let (m2p_sender, m2p_receiver) = channel::<String>(CHAN_SIZE);
             m2p_senders.push(m2p_sender);
             tasks.push(
                 echo_channel_to_stdin(BufWriter::new(process.stdin.take().unwrap()), m2p_receiver)
@@ -112,7 +112,7 @@ async fn run(mut processes: Vec<Child>) -> Result<()> {
                     BufReader::new(process.stdout.take().unwrap()).lines(),
                     p2m_sender.clone(),
                     idx + 1, // We start iterating at 1 after the manager
-                    delim,
+                    DELIM,
                 )
                 .boxed(),
             );
@@ -121,7 +121,7 @@ async fn run(mut processes: Vec<Child>) -> Result<()> {
             echo_tagged_stdout_to_channel(
                 BufReader::new(manager.stdout.take().unwrap()).lines(),
                 m2p_senders,
-                delim,
+                DELIM,
             )
             .boxed(),
         );
@@ -129,7 +129,9 @@ async fn run(mut processes: Vec<Child>) -> Result<()> {
     // Note: if the block above is in the same scope as this join_all call,
     // the original p2m_sender is still alive here and join_all will never finish
     // since p2m_receiver waits for the sender to be dropped before closing
-    join_all(tasks.into_iter()).await;
+    for result in join_all(tasks.into_iter()).await {
+        result?
+    }
     info!("All tasks resolved");
     Ok(())
 }
@@ -152,15 +154,9 @@ async fn main() -> anyhow::Result<()> {
         .init();
     let args = env::args().collect::<Vec<_>>();
     debug!("{} called with arguments: [{}]", args[0], args.join(", "),);
-    // TODO(mbwang): debugging, allowing just one input program
-    if args.len() < 2
-    /*3*/
-    {
+    if args.len() < 3 {
         usage();
-        // TODO: for some reason I can't return an error here
-        // without messing up the inferred return value of this function,
-        // maybe a problem with anywho or tokio?
-        return Ok(());
+        bail!("The metamanager needs to be run with at least two other processes - a manager and a player");
     }
 
     run(processes_from_paths(&args[1..])).await?;
