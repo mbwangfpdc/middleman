@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import random
 import sys
 
@@ -34,6 +35,7 @@ def num_to_symbol(num: int) -> str:
         assert False
 
 
+# Prints to stderr to not confuse the manager
 def print_board():
     for row in range(0, 3):
         print("|".join([num_to_symbol(val) for val in board[row]]), file=sys.stderr)
@@ -94,6 +96,6 @@ while True:
         move = move_that_wins()
         while move < 0 or get_board(move) != EMPTY:
             move = random.randint(0, 8)
-        print(move)
+        print(move, flush=True)
         set_board(move, ME)
         my_turn = False
