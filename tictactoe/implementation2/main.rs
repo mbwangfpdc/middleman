@@ -43,14 +43,18 @@ fn main() {
         update_positions_and_moves(&mut possible_moves, &mut opponent_positions, &get_input_as_u8());
     }
     let mut rng = rand::thread_rng();
-    loop {
-        let my_move: u8 = rng.gen_range(0..9);
+    while possible_moves.len() != 0 {
+        let mut my_move: u8 = rng.gen_range(0..9);
         while !possible_moves.contains(&my_move) {
+            my_move = rng.gen_range(0..9);
             println!("{}", my_move);
         }
         update_positions_and_moves(&mut possible_moves, &mut my_positions, &my_move);
         if contains_winning_combination(&my_positions) {
             println!("I win!!");
+            break;
+        }
+        if possible_moves.len() == 0 {
             break;
         }
         let opponent_move: u8 = get_input_as_u8();
