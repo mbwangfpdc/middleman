@@ -35,7 +35,7 @@ def main():
                 return move
         return -1
 
-    my_turn = bool(int(input()))
+    my_turn = not bool(int(input()))
     while True:
         print_board()
         if has_winning_position(my_positions):
