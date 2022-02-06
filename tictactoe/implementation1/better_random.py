@@ -25,6 +25,7 @@ def main():
                 end="\n" if pos % 3 == 2 else "",
                 file=sys.stderr,  # So we don't confuse the manager
             )
+        print(file=sys.stderr)
 
     # Return a winning move or -1 if no winning move exists
     def move_that_wins() -> int:

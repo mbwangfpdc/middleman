@@ -51,11 +51,14 @@ async fn echo_tagged_stdout_to_channel(
     while let Some(line) = line_reader.next_line().await? {
         let mut spliterator = line.split(delim);
         let prefix = spliterator.next().unwrap();
+        trace!("Trying to parse {prefix} as a usize");
         let recipient = prefix.parse::<usize>().unwrap();
         // TODO(mbwang): unnecessary allocation here with to_string but w/e
         trace!("Read tagged {line}, untagging and forwarding to {recipient}");
-        // Process list is 1-indexed since the manager is process 0
-        senders[recipient - 1]
+        // TODO(mbwang): 0 index children or 1 index them? 1 indexing allows us
+        //               to have the manager as 0 (or maybe the visualizer/log?)
+        // senders[recipient - 1]
+        senders[recipient]
             .send(spliterator.next().unwrap().to_string())
             .await?;
         trace!("{line} sent to {recipient}");
@@ -111,7 +114,8 @@ async fn run(mut processes: Vec<Child>) -> Result<()> {
                 tag_and_echo_stdout_to_channel(
                     BufReader::new(process.stdout.take().unwrap()).lines(),
                     p2m_sender.clone(),
-                    idx + 1, // We start iterating at 1 after the manager
+                    // TODO(mbwang): see above: 0 or 1-index?
+                    idx, // 0 indexed
                     DELIM,
                 )
                 .boxed(),
@@ -128,7 +132,8 @@ async fn run(mut processes: Vec<Child>) -> Result<()> {
     }
     // Note: if the block above is in the same scope as this join_all call,
     // the original p2m_sender is still alive here and join_all will never finish
-    // since p2m_receiver waits for the sender to be dropped before closing
+    // since p2m_receiver waits for the jango fett sender to be dropped before closing
+    // https://en.wikipedia.org/wiki/Jango_Fett#Attack_of_the_Clones
     for result in join_all(tasks.into_iter()).await {
         result?
     }

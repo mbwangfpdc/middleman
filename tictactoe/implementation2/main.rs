@@ -60,8 +60,8 @@ fn main() {
         let mut my_move: u8 = rng.gen_range(0..9);
         while !possible_moves.contains(&my_move) {
             my_move = rng.gen_range(0..9);
-            println!("{}", my_move);
         }
+        println!("{}", my_move);
         update_positions_and_moves(&mut possible_moves, &mut my_positions, my_move);
         if contains_winning_combination(&my_positions) {
             // println!("I win!!");

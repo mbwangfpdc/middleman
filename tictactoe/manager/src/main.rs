@@ -1,20 +1,20 @@
 use rand::Rng;
 use std::collections::HashSet;
-use tokio::time::timeout;
-use tokio::io;
-use std::time::Duration;
-use tokio::io::{BufReader, AsyncBufReadExt};
-use std::result::Result::Ok;
 use std::fmt;
+use std::result::Result::Ok;
+use std::time::Duration;
+use tokio::io;
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::time::timeout;
 
 struct Message {
     user_pid: u8,
-    position: u8
+    position: u8,
 }
 
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}", self.user_pid, self.position)
+        write!(f, "{}:{}", self.user_pid, self.position)
     }
 }
 
@@ -23,9 +23,9 @@ fn build_message(line: String) -> Option<Message> {
     let user_pid = split.next()?.parse::<u8>().unwrap();
     let message = split.next()?.trim();
     match message.parse::<u8>() {
-        Ok(position) => Some(Message{user_pid, position}),
-        Err(_) => None, 
-    } 
+        Ok(position) => Some(Message { user_pid, position }),
+        Err(_) => None,
+    }
 }
 
 fn contains_winning_combination(moves: &HashSet<u8>) -> bool {
@@ -47,8 +47,21 @@ fn contains_winning_combination(moves: &HashSet<u8>) -> bool {
     return false;
 }
 
+// TODO: this is commented out because maybe players don't need
+//       to know about how to deal with the game end, we can just
+//       shut down their programs gracefully and save the result
+//       in the manager's log (TODO).
+//
+//       also it was throwing a bunch of broken pipe errors lmao
+// Send result to both
 fn print_decisive_result(loser_pid: u8) {
-    println!("{} {}", get_next_pid(loser_pid), loser_pid);
+    // println!("{}:{} {}", loser_pid, get_next_pid(loser_pid), loser_pid);
+    // println!(
+    //     "{}:{} {}",
+    //     get_next_pid(loser_pid),
+    //     get_next_pid(loser_pid),
+    //     loser_pid
+    // );
 }
 
 fn get_next_pid(pid: u8) -> u8 {
@@ -90,7 +103,13 @@ async fn main() {
 
                 // Notify the next player of the move.
                 current_pid = get_next_pid(current_pid);
-                println!("{}", Message{user_pid: current_pid, position: message.position});
+                println!(
+                    "{}",
+                    Message {
+                        user_pid: current_pid,
+                        position: message.position
+                    }
+                );
             } else {
                 // Player current_pid provided invalid input.
                 print_decisive_result(current_pid);
