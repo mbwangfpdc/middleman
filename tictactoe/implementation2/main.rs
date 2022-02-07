@@ -35,7 +35,7 @@ fn contains_winning_combination(positions: &HashSet<u8>) -> bool {
         HashSet::from([6, 4, 2]),
     ];
     for combination in &winning_combinations {
-        if combination.intersection(positions).count() == 3 {
+        if positions.is_superset(combination) {
             return true;
         }
     }

@@ -40,7 +40,7 @@ fn contains_winning_combination(moves: &HashSet<u8>) -> bool {
         HashSet::from([6, 4, 2]),
     ];
     for combination in &winning_combinations {
-        if combination.intersection(moves).count() == 3 {
+        if moves.is_superset(combination) {
             return true;
         }
     }
