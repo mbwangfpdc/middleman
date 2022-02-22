@@ -1,0 +1,23 @@
+[package]
+name = "rust-impl"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.8.4"
+itertools = "0.10.3"
+
+[[bin]]
+name = "manager"
+path = "src/bin/manager.rs"
+[[bin]]
+name = "minimax"
+path = "src/bin/minimax.rs"
+[[bin]]
+name = "random"
+path = "src/bin/random.rs"
+[lib]
+name = "checkers"
+path = "src/checkers.rs"
