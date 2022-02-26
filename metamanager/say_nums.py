@@ -5,4 +5,4 @@ from time import sleep
 
 for i in range(5):
     sleep(random.random() * 3)
-    print(f"1:{i}", flush=True)
+    print(f"0:{i}", flush=True)
